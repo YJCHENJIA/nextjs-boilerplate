@@ -1,0 +1,529 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { ShoppingCart, Trash2, Minus, Plus, CheckCircle2, XCircle, Globe, Filter, CreditCard, ShieldCheck, Package, ChevronDown } from "lucide-react";
+
+// ----------------------
+// Minimal, single-file demo store for Baijiu (白酒) with Chinese + Spanish UI
+// - TailwindCSS for styling (auto-available in this environment)
+// - No backend: cart stored in localStorage
+// - Age gate (18+)
+// - Simple search / filter / sort
+// - Responsive design
+// You can replace the PRODUCTS array with real data and images
+// ----------------------
+
+const STRINGS = {
+  zh: {
+    brand: "白酒商店",
+    tagline: "正宗中国白酒 · 西班牙直送",
+    heroCta: "立即选购",
+    searchPlaceholder: "搜索品牌/香型...",
+    language: "中文",
+    switchTo: "切换到西班牙语",
+    cart: "购物车",
+    addToCart: "加入购物车",
+    inStock: "现货",
+    outOfStock: "缺货",
+    volume: "容量",
+    abv: "酒精度",
+    origin: "产地",
+    price: "价格",
+    category: "香型",
+    all: "全部",
+    light: "清香型",
+    strong: "浓香型",
+    sauce: "酱香型",
+    mixed: "兼香型",
+    rice: "米香型",
+    sortBy: "排序",
+    sortRec: "推荐",
+    sortPriceAsc: "价格从低到高",
+    sortPriceDesc: "价格从高到低",
+    items: "件商品",
+    emptyCart: "购物车是空的",
+    checkout: "去结算",
+    subtotal: "小计",
+    taxesIncl: "含增值税 (IVA)",
+    securePay: "安全支付",
+    shippingInfo: "48小时内发货（西班牙境内）",
+    ageTitle: "年龄验证",
+    ageText: "本网站仅向年满18岁人士提供。请确认您已年满18岁。",
+    yes18: "我已满18岁",
+    no18: "我未满18岁",
+    contact: "联系我们",
+    footerLegal: "请理性饮酒。未成年人禁止饮酒。",
+    filters: "筛选",
+    clear: "清空",
+    size: "容量",
+    country: "国家/地区",
+    china: "中国",
+    spain: "西班牙",
+    noteDemo: "演示站点：下单仅作示例，不会真实扣款。",
+    payNow: "立即支付",
+    orderReview: "订单预览",
+    address: "收货地址",
+    name: "姓名",
+    phone: "电话",
+    city: "城市",
+    postal: "邮编",
+    addressPlaceholder: "街道、门牌号、楼层...",
+    required: "必填",
+    thankYou: "感谢下单！我们已向您的邮箱发送确认。",
+  },
+  es: {
+    brand: "Tienda de Baijiu",
+    tagline: "Baijiu auténtico · Envío nacional en España",
+    heroCta: "Comprar ahora",
+    searchPlaceholder: "Buscar marca/estilo...",
+    language: "Español",
+    switchTo: "Cambiar a Chino",
+    cart: "Carrito",
+    addToCart: "Añadir al carrito",
+    inStock: "En stock",
+    outOfStock: "Agotado",
+    volume: "Volumen",
+    abv: "% Alc.",
+    origin: "Origen",
+    price: "Precio",
+    category: "Estilo",
+    all: "Todos",
+    light: "Ligero",
+    strong: "Intenso",
+    sauce: "Salsa",
+    mixed: "Mixto",
+    rice: "Arroz",
+    sortBy: "Ordenar",
+    sortRec: "Recomendado",
+    sortPriceAsc: "Precio ↑",
+    sortPriceDesc: "Precio ↓",
+    items: "artículos",
+    emptyCart: "Tu carrito está vacío",
+    checkout: "Finalizar compra",
+    subtotal: "Subtotal",
+    taxesIncl: "IVA incluido",
+    securePay: "Pago seguro",
+    shippingInfo: "Envío en 48h (Península)",
+    ageTitle: "Verificación de edad",
+    ageText: "Este sitio es solo para mayores de 18 años. Confirma que tienes al menos 18 años.",
+    yes18: "Tengo 18+",
+    no18: "Tengo menos de 18",
+    contact: "Contacto",
+    footerLegal: "Bebe con responsabilidad. Prohibido a menores.",
+    filters: "Filtros",
+    clear: "Limpiar",
+    size: "Tamaño",
+    country: "País",
+    china: "China",
+    spain: "España",
+    noteDemo: "Sitio demo: los pedidos son de prueba, no se cobra.",
+    payNow: "Pagar ahora",
+    orderReview: "Resumen del pedido",
+    address: "Dirección",
+    name: "Nombre",
+    phone: "Teléfono",
+    city: "Ciudad",
+    postal: "CP",
+    addressPlaceholder: "Calle, número, piso...",
+    required: "Obligatorio",
+    thankYou: "¡Gracias por tu compra! Te enviamos la confirmación por email.",
+  },
+};
+
+const PRODUCTS = [
+  {
+    id: "moutai-500",
+    name: { zh: "贵州茅台 飞天 500ml", es: "Moutai Feitian 500ml" },
+    price: 289.0,
+    volume: 500,
+    abv: 53,
+    origin: { zh: "中国·贵州", es: "China · Guizhou" },
+    style: "sauce",
+    stock: 8,
+    img: "https://images.unsplash.com/photo-1604908176997-2b1d8d31a85e?auto=format&fit=crop&w=800&q=60",
+  },
+  {
+    id: "wuliangye-500",
+    name: { zh: "五粮液 500ml", es: "Wuliangye 500ml" },
+    price: 139.0,
+    volume: 500,
+    abv: 52,
+    origin: { zh: "中国·四川", es: "China · Sichuan" },
+    style: "strong",
+    stock: 15,
+    img: "https://images.unsplash.com/photo-1625685642855-3d92b1d1d1bd?auto=format&fit=crop&w=800&q=60",
+  },
+  {
+    id: "fenjiu-475",
+    name: { zh: "汾酒 青花 475ml", es: "Fenjiu Qinghua 475ml" },
+    price: 39.0,
+    volume: 475,
+    abv: 53,
+    origin: { zh: "中国·山西", es: "China · Shanxi" },
+    style: "light",
+    stock: 30,
+    img: "https://images.unsplash.com/photo-1620841719885-0f1d2c40b7f0?auto=format&fit=crop&w=800&q=60",
+  },
+  {
+    id: "jiangxiaobai-375",
+    name: { zh: "江小白 375ml", es: "Jiangxiaobai 375ml" },
+    price: 12.9,
+    volume: 375,
+    abv: 40,
+    origin: { zh: "中国·重庆", es: "China · Chongqing" },
+    style: "light",
+    stock: 40,
+    img: "https://images.unsplash.com/photo-1544148103-0773bf10d330?auto=format&fit=crop&w=800&q=60",
+  },
+  {
+    id: "luzhoulaojiao-500",
+    name: { zh: "泸州老窖 特曲 500ml", es: "Luzhou Laojiao Tequ 500ml" },
+    price: 49.0,
+    volume: 500,
+    abv: 52,
+    origin: { zh: "中国·四川", es: "China · Sichuan" },
+    style: "strong",
+    stock: 25,
+    img: "https://images.unsplash.com/photo-1582100694709-01654d56fa44?auto=format&fit=crop&w=800&q=60",
+  },
+  {
+    id: "shuijingfang-500",
+    name: { zh: "水井坊 井台 500ml", es: "Shuijingfang 500ml" },
+    price: 89.0,
+    volume: 500,
+    abv: 52,
+    origin: { zh: "中国·四川", es: "China · Sichuan" },
+    style: "strong",
+    stock: 10,
+    img: "https://images.unsplash.com/photo-1613478222410-bb55c36e2e23?auto=format&fit=crop&w=800&q=60",
+  },
+];
+
+function classNames(...arr) {
+  return arr.filter(Boolean).join(" ");
+}
+
+function useLocalStorage(key, initial) {
+  const [val, setVal] = useState(() => {
+    try {
+      const v = localStorage.getItem(key);
+      return v ? JSON.parse(v) : initial;
+    } catch {
+      return initial;
+    }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  }, [key, val]);
+  return [val, setVal];
+}
+
+export default function BaijiuStore() {
+  const [lang, setLang] = useLocalStorage("lang", "zh");
+  const t = STRINGS[lang];
+
+  const [ageOk, setAgeOk] = useLocalStorage("age_ok", false);
+  const [query, setQuery] = useState("");
+  const [style, setStyle] = useState("all");
+  const [sort, setSort] = useState("rec");
+  const [country, setCountry] = useState("all");
+  const [size, setSize] = useState("all");
+  const [cart, setCart] = useLocalStorage("cart", {}); // {id: qty}
+  const [showCart, setShowCart] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+
+  const filtered = useMemo(() => {
+    let out = PRODUCTS.filter(p => {
+      const name = (p.name[lang] || "").toLowerCase();
+      const hitName = name.includes(query.toLowerCase());
+      const hitStyle = style === "all" ? true : p.style === style;
+      const hitCountry = country === "all" ? true : (country === "cn" ? p.origin.zh.includes("中国") : p.origin.es.includes("España"));
+      const hitSize = size === "all" ? true : (size === "lt500" ? p.volume < 500 : p.volume >= 500);
+      return hitName && hitStyle && hitCountry && hitSize;
+    });
+    if (sort === "asc") out.sort((a,b)=>a.price-b.price);
+    else if (sort === "desc") out.sort((a,b)=>b.price-a.price);
+    return out;
+  }, [query, style, sort, country, size, lang]);
+
+  const cartItems = useMemo(() => {
+    return Object.entries(cart).map(([id, qty]) => {
+      const p = PRODUCTS.find(x=>x.id===id);
+      return { ...p, qty };
+    }).filter(Boolean);
+  }, [cart]);
+
+  const subtotal = cartItems.reduce((s, it) => s + it.price * it.qty, 0);
+
+  function addToCart(id) {
+    setCart(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+    setShowCart(true);
+  }
+  function changeQty(id, delta) {
+    setCart(prev => {
+      const next = { ...prev, [id]: Math.max(0, (prev[id]||0) + delta) };
+      if (next[id] === 0) delete next[id];
+      return next;
+    });
+  }
+  function clearCart() { setCart({}); }
+
+  // Fake checkout form state
+  const [form, setForm] = useState({ name:"", phone:"", city:"", postal:"", address:"" });
+  const [paid, setPaid] = useState(false);
+
+  function formatEUR(n){
+    return new Intl.NumberFormat(lang==='zh'?'zh-CN':'es-ES', { style:'currency', currency:'EUR' }).format(n);
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-white to-slate-50 text-slate-800">
+      {/* Top bar */}
+      <header className="sticky top-0 z-40 backdrop-blur bg-white/70 border-b border-slate-200">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3 justify-between">
+          <div className="flex items-center gap-3">
+            <Package className="w-7 h-7" />
+            <div>
+              <div className="font-bold text-xl">{t.brand}</div>
+              <div className="text-sm text-slate-500">{t.tagline}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={()=>setLang(l=> l==='zh'?'es':'zh')}
+              className="inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm shadow-sm hover:shadow transition">
+              <Globe className="w-4 h-4"/>
+              <span>{lang==='zh'?t.switchTo:t.switchTo}</span>
+            </button>
+            <button
+              onClick={()=>setShowCart(v=>!v)}
+              className="relative inline-flex items-center gap-2 rounded-2xl bg-slate-900 text-white px-3 py-2 shadow hover:opacity-90">
+              <ShoppingCart className="w-4 h-4"/>
+              <span>{t.cart}</span>
+              {Object.keys(cart).length>0 && (
+                <span className="absolute -top-2 -right-2 bg-rose-600 text-white text-xs rounded-full px-2 py-0.5">
+                  {Object.values(cart).reduce((a,b)=>a+b,0)}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="max-w-6xl mx-auto px-4 pt-10 pb-6">
+        <div className="grid md:grid-cols-2 gap-6 items-center">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-extrabold leading-tight">
+              {t.tagline}
+            </h1>
+            <p className="mt-3 text-slate-600">
+              {t.noteDemo}
+            </p>
+            <button className="mt-5 inline-flex items-center gap-2 bg-rose-700 text-white px-5 py-3 rounded-2xl shadow hover:opacity-95" onClick={()=>document.getElementById('catalog')?.scrollIntoView({behavior:'smooth'})}>
+              {t.heroCta}
+            </button>
+            <div className="mt-4 flex items-center gap-3 text-slate-600">
+              <ShieldCheck className="w-5 h-5"/> <span>{t.securePay}</span>
+              <CreditCard className="w-5 h-5"/> <span>{t.taxesIncl}</span>
+            </div>
+          </div>
+          <div className="relative">
+            <img className="rounded-2xl shadow-lg w-full object-cover max-h-[360px]" src="https://images.unsplash.com/photo-1536935339740-94a37cdbd517?auto=format&fit=crop&w=1200&q=60" alt="baijiu"/>
+          </div>
+        </div>
+      </section>
+
+      {/* Controls */}
+      <section id="catalog" className="max-w-6xl mx-auto px-4">
+        <div className="flex flex-wrap items-center gap-2 justify-between">
+          <div className="flex gap-2 items-center flex-1 min-w-[260px]">
+            <div className="relative w-full">
+              <input
+                value={query}
+                onChange={e=>setQuery(e.target.value)}
+                placeholder={t.searchPlaceholder}
+                className="w-full border rounded-2xl px-4 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-600"
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 items-center">
+            <div className="relative">
+              <select value={style} onChange={e=>setStyle(e.target.value)} className="appearance-none border rounded-2xl px-4 py-2 pr-8 shadow-sm">
+                <option value="all">{t.all}</option>
+                <option value="light">{t.light}</option>
+                <option value="strong">{t.strong}</option>
+                <option value="sauce">{t.sauce}</option>
+                <option value="mixed">{t.mixed}</option>
+                <option value="rice">{t.rice}</option>
+              </select>
+              <ChevronDown className="w-4 h-4 absolute right-3 top-3 pointer-events-none"/>
+            </div>
+            <div className="relative">
+              <select value={size} onChange={e=>setSize(e.target.value)} className="appearance-none border rounded-2xl px-4 py-2 pr-8 shadow-sm">
+                <option value="all">{t.size}: {t.all}</option>
+                <option value="lt500">&lt; 500ml</option>
+                <option value=">=500">≥ 500ml</option>
+              </select>
+              <ChevronDown className="w-4 h-4 absolute right-3 top-3 pointer-events-none"/>
+            </div>
+            <div className="relative">
+              <select value={country} onChange={e=>setCountry(e.target.value)} className="appearance-none border rounded-2xl px-4 py-2 pr-8 shadow-sm">
+                <option value="all">{t.country}: {t.all}</option>
+                <option value="cn">{t.china}</option>
+                <option value="es">{t.spain}</option>
+              </select>
+              <ChevronDown className="w-4 h-4 absolute right-3 top-3 pointer-events-none"/>
+            </div>
+            <div className="relative">
+              <select value={sort} onChange={e=>setSort(e.target.value)} className="appearance-none border rounded-2xl px-4 py-2 pr-8 shadow-sm">
+                <option value="rec">{t.sortRec}</option>
+                <option value="asc">{t.sortPriceAsc}</option>
+                <option value="desc">{t.sortPriceDesc}</option>
+              </select>
+              <ChevronDown className="w-4 h-4 absolute right-3 top-3 pointer-events-none"/>
+            </div>
+          </div>
+        </div>
+
+        {/* Grid */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+          {filtered.map(p => (
+            <div key={p.id} className="rounded-2xl border bg-white shadow-sm hover:shadow-md transition overflow-hidden flex flex-col">
+              <div className="aspect-[4/3] bg-slate-100">
+                <img src={p.img} alt={p.name[lang]} className="w-full h-full object-cover"/>
+              </div>
+              <div className="p-4 flex-1 flex flex-col">
+                <div className="font-semibold text-lg leading-snug">{p.name[lang]}</div>
+                <div className="text-sm text-slate-500 mt-1">
+                  {t.volume}: {p.volume}ml · {t.abv}: {p.abv}% · {t.origin}: {p.origin[lang]}
+                </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <div className="text-2xl font-extrabold">{formatEUR(p.price)}</div>
+                  <span className={classNames("text-xs px-2 py-1 rounded-full", p.stock>0?"bg-emerald-100 text-emerald-700":"bg-slate-200 text-slate-500")}>{p.stock>0?t.inStock:t.outOfStock}</span>
+                </div>
+                <button disabled={p.stock===0} onClick={()=>addToCart(p.id)} className={classNames("mt-4 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-2xl shadow w-full", p.stock>0?"bg-slate-900 text-white hover:opacity-90":"bg-slate-200 text-slate-500 cursor-not-allowed") }>
+                  <ShoppingCart className="w-4 h-4"/> {t.addToCart}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="mt-12 border-t">
+        <div className="max-w-6xl mx-auto px-4 py-8 grid md:grid-cols-3 gap-6 text-sm">
+          <div>
+            <div className="font-semibold mb-2">{t.contact}</div>
+            <div>Email: hola@baijiu.es</div>
+            <div>Tel: +34 600 000 000</div>
+            <div>Madrid, España</div>
+          </div>
+          <div>
+            <div className="font-semibold mb-2">Legal</div>
+            <ul className="space-y-1 text-slate-600">
+              <li>IVA · Facturación</li>
+              <li>Política de privacidad</li>
+              <li>Términos y condiciones</li>
+            </ul>
+          </div>
+          <div className="text-slate-600">
+            {t.footerLegal}
+          </div>
+        </div>
+      </footer>
+
+      {/* Cart Drawer */}
+      <div className={classNames("fixed top-0 right-0 h-full w-[92%] sm:w-[420px] bg-white shadow-2xl z-50 transition-transform", showCart?"translate-x-0":"translate-x-full")}> 
+        <div className="h-full flex flex-col">
+          <div className="p-4 border-b flex items-center justify-between">
+            <div className="font-bold">{t.cart}</div>
+            <button onClick={()=>setShowCart(false)} className="rounded-full p-2 hover:bg-slate-100"><XCircle className="w-5 h-5"/></button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {cartItems.length===0 && (
+              <div className="text-slate-500 text-sm">{t.emptyCart}</div>
+            )}
+            {cartItems.map(it => (
+              <div key={it.id} className="flex gap-3 border rounded-xl p-3">
+                <img src={it.img} alt={it.name[lang]} className="w-20 h-20 object-cover rounded-lg"/>
+                <div className="flex-1">
+                  <div className="font-medium">{it.name[lang]}</div>
+                  <div className="text-sm text-slate-500">{formatEUR(it.price)}</div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <button className="p-1 rounded-full border" onClick={()=>changeQty(it.id, -1)}><Minus className="w-4 h-4"/></button>
+                    <span className="min-w-[2ch] text-center">{it.qty}</span>
+                    <button className="p-1 rounded-full border" onClick={()=>changeQty(it.id, +1)}><Plus className="w-4 h-4"/></button>
+                    <button className="ml-auto text-rose-600 hover:underline inline-flex items-center gap-1" onClick={()=>changeQty(it.id, -it.qty)}>
+                      <Trash2 className="w-4 h-4"/> Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="border-t p-4 space-y-2">
+            <div className="flex items-center justify-between"><span>{t.subtotal}</span><span className="font-bold">{formatEUR(subtotal)}</span></div>
+            <div className="text-xs text-slate-500">{t.taxesIncl} · {t.shippingInfo}</div>
+            <button disabled={cartItems.length===0} onClick={()=>{ setShowCheckout(true); setShowCart(false); }} className={classNames("w-full px-4 py-3 rounded-2xl shadow flex items-center justify-center gap-2", cartItems.length>0?"bg-rose-700 text-white hover:opacity-95":"bg-slate-200 text-slate-500")}>{t.checkout}</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Checkout Modal */}
+      {showCheckout && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden">
+            <div className="p-4 border-b flex items-center justify-between">
+              <div className="font-bold">{t.orderReview}</div>
+              <button onClick={()=>setShowCheckout(false)} className="rounded-full p-2 hover:bg-slate-100"><XCircle className="w-5 h-5"/></button>
+            </div>
+            <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+              {cartItems.map(it => (
+                <div key={it.id} className="flex items-start gap-3">
+                  <img src={it.img} alt={it.name[lang]} className="w-16 h-16 rounded-lg object-cover"/>
+                  <div className="flex-1">
+                    <div className="font-medium">{it.name[lang]}</div>
+                    <div className="text-sm text-slate-500">x{it.qty} · {formatEUR(it.price * it.qty)}</div>
+                  </div>
+                </div>
+              ))}
+              <div className="pt-2 border-t flex items-center justify-between font-semibold">
+                <span>{t.subtotal}</span>
+                <span>{formatEUR(subtotal)}</span>
+              </div>
+              {!paid ? (
+                <form className="grid grid-cols-2 gap-3" onSubmit={(e)=>{e.preventDefault(); setPaid(true); clearCart();}}>
+                  <div className="col-span-2 font-semibold mt-2">{t.address}</div>
+                  <input required placeholder={t.name+" · "+t.required} value={form.name} onChange={e=>setForm({...form, name:e.target.value})} className="border rounded-xl px-3 py-2"/>
+                  <input required placeholder={t.phone+" · "+t.required} value={form.phone} onChange={e=>setForm({...form, phone:e.target.value})} className="border rounded-xl px-3 py-2"/>
+                  <input required placeholder={t.city+" · "+t.required} value={form.city} onChange={e=>setForm({...form, city:e.target.value})} className="border rounded-xl px-3 py-2"/>
+                  <input required placeholder={t.postal+" · "+t.required} value={form.postal} onChange={e=>setForm({...form, postal:e.target.value})} className="border rounded-xl px-3 py-2"/>
+                  <input required placeholder={t.addressPlaceholder} value={form.address} onChange={e=>setForm({...form, address:e.target.value})} className="col-span-2 border rounded-xl px-3 py-2"/>
+                  <button type="submit" className="col-span-2 bg-slate-900 text-white rounded-2xl px-4 py-3 shadow flex items-center justify-center gap-2">
+                    <CreditCard className="w-4 h-4"/> {t.payNow}
+                  </button>
+                </form>
+              ) : (
+                <div className="flex items-center gap-2 text-emerald-700"><CheckCircle2 className="w-5 h-5"/> {t.thankYou}</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Age Gate */}
+      {!ageOk && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 text-center space-y-3 shadow-2xl">
+            <div className="text-xl font-bold">{t.ageTitle}</div>
+            <p className="text-slate-600">{t.ageText}</p>
+            <div className="flex gap-3 justify-center mt-2">
+              <button onClick={()=>setAgeOk(true)} className="bg-emerald-600 text-white px-4 py-2 rounded-2xl shadow">{t.yes18}</button>
+              <button onClick={()=>{ alert(lang==='zh'?"抱歉，您暂时无法访问该站点。":"Lo sentimos, no puedes acceder."); }} className="bg-slate-200 px-4 py-2 rounded-2xl">{t.no18}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
